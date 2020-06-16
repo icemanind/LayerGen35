@@ -1,0 +1,241 @@
+﻿Imports System.Collections.Generic
+Imports System.Text.RegularExpressions
+
+Namespace TokenIcer
+	''' <summary>
+	''' TokenParser
+	''' </summary>
+	''' <remarks>
+	''' TokenParser is the main parser engine for converting input into lexical tokens.
+	''' </remarks>
+    Public Class TokenParser
+        Private ReadOnly _tokens As Dictionary(Of Tokens, String)
+		Private ReadOnly _regExMatchCollection As Dictionary(Of Tokens, MatchCollection)
+        Private _inputString As String
+        Private _index As Integer
+
+		''' <summary>
+		''' Tokens is an enumeration of all possible token values.
+		''' </summary>
+        Public Enum Tokens
+            Undefined = 0
+            OpeningBrace=1
+            ClosingBrace=2
+            OpeningParenthesis=3
+            ClosingParenthesis=4
+            WhiteSpace=5
+            [String]=6
+            Number=7
+            Equal=8
+            NotEqual=9
+            GreaterThan=10
+            LessThan=11
+            GreaterThanOrEqual=12
+            LessThanOrEqual=13
+            [And]=14
+            [Or]=15
+            FieldName=16
+        End Enum
+
+		''' <summary>
+		''' InputString Property
+		''' </summary>
+		''' <value>
+		''' The string value that holds the input string.
+		''' </value>
+        Public WriteOnly Property InputString() As String
+            Set
+                _inputString = value
+				PrepareRegex()
+            End Set
+        End Property
+
+		''' <summary>
+		''' Default Constructor
+		''' </summary>
+		''' <remarks>
+		''' The constructor initalizes memory and adds all of the tokens to the token dictionary.
+		''' </remarks>
+        Public Sub New()
+            _tokens = New Dictionary(Of Tokens, String)()
+			_regExMatchCollection = New Dictionary(Of Tokens, MatchCollection)()
+            _index = 0
+            _inputString = String.Empty
+
+            _tokens.Add(Tokens.OpeningBrace, "\{")
+            _tokens.Add(Tokens.ClosingBrace, "\}")
+            _tokens.Add(Tokens.OpeningParenthesis, "\(")
+            _tokens.Add(Tokens.ClosingParenthesis, "\)")
+            _tokens.Add(Tokens.WhiteSpace, "[ \t]+")
+            _tokens.Add(Tokens.[String], "(\'.+?\')|(\'\')")
+            _tokens.Add(Tokens.Number, "\d*\.?\d+")
+            _tokens.Add(Tokens.Equal, "[Ee][Qq]")
+            _tokens.Add(Tokens.NotEqual, "[Nn][Ee]")
+            _tokens.Add(Tokens.GreaterThan, "[Gg][Tt]")
+            _tokens.Add(Tokens.LessThan, "[Ll][Tt]")
+            _tokens.Add(Tokens.GreaterThanOrEqual, "[Gg][Ee]")
+            _tokens.Add(Tokens.LessThanOrEqual, "[Ll][Ee]")
+            _tokens.Add(Tokens.[And], "[Aa][Nn][Dd]")
+            _tokens.Add(Tokens.[Or], "[Oo][Rr]")
+            _tokens.Add(Tokens.FieldName, "\[[A-Za-z_0-9\@\# ]+\]")
+        End Sub
+
+		''' <summary>
+		''' PrepareRegex prepares the regex for parsing by pre-matching the Regex tokens.
+		''' </summary>
+		Private Sub PrepareRegex()
+            _regExMatchCollection.Clear()
+			For Each pair As KeyValuePair(Of Tokens, String) In _tokens
+                _regExMatchCollection.Add(pair.Key, Regex.Matches(_inputString, pair.Value))
+            Next
+        End Sub
+
+		''' <summary>
+		''' ResetParser resets the parser to its inital state. Reloading InputString is required.
+		''' </summary>
+		''' <seealso cref="InputString"/>
+        Public Sub ResetParser()
+            _index = 0
+            _inputString = String.Empty
+			_regExMatchCollection.Clear()
+        End Sub
+
+		''' <summary>
+		''' GetToken gets the next token in queue
+		''' </summary>
+		''' <remarks>
+		''' GetToken attempts to the match the next character(s) using the
+		''' Regex rules defined in the dictionary. If a match can not be
+		''' located, then an Undefined token will be created with an empty
+		''' string value. In addition, the token pointer will be incremented
+		''' by one so that this token doesn't attempt to get identified again by
+		''' GetToken()
+		''' </remarks>
+        Public Function GetToken() As Token
+            If _index >= _inputString.Length Then
+                Return Nothing
+            End If
+			
+			For Each pair As KeyValuePair(Of Tokens, MatchCollection) In _regExMatchCollection
+			    For Each match As Match In pair.Value
+				    If match.Index = _index Then
+					    _index += match.Length
+						Return New Token(pair.Key, match.Value)
+					ElseIf match.Index > _index Then
+					    Exit For
+					End If
+				Next
+			Next
+           
+            _index += 1
+            Return New Token(Tokens.Undefined, String.Empty)
+        End Function
+
+		''' <summary>
+		''' Returns the next token that GetToken() will return.
+		''' </summary>
+		''' <seealso cref="Peek(PeekToken)"/>
+        Public Function Peek() As PeekToken
+            Return Peek(New PeekToken(_index, New Token(Tokens.Undefined, String.Empty)))
+        End Function
+
+		''' <summary>
+		''' Returns the next token after the Token passed here
+		''' </summary>
+		''' <param name="peekToken">The PeekToken token returned from a previous Peek() call</param>
+		''' <seealso cref="Peek()"/>
+        Public Function Peek(peekToken As PeekToken) As PeekToken
+            Dim oldIndex As Integer = _index
+
+            _index = peekToken.TokenIndex
+
+            If _index >= _inputString.Length Then
+                _index = oldIndex
+                Return Nothing
+            End If
+
+            For Each pair As KeyValuePair(Of Tokens, String) In _tokens
+                Dim r As New Regex(pair.Value)
+                Dim m As Match = r.Match(_inputString, _index)
+
+                If m.Success AndAlso m.Index = _index Then
+                    _index = _index + m.Length
+                    Dim pt As New PeekToken(_index, New Token(pair.Key, m.Value))
+                    _index = oldIndex
+                    Return pt
+                End If
+            Next
+            Dim pt2 As New PeekToken(_index + 1, New Token(Tokens.Undefined, String.Empty))
+            _index = oldIndex
+            return pt2
+        End Function
+    End Class
+
+	''' <summary>
+	''' A PeekToken object class
+	''' </summary>
+	''' <remarks>
+	''' A PeekToken is a special pointer object that can be used to Peek() several
+	''' tokens ahead in the GetToken() queue.
+	''' </remarks>
+    Public Class PeekToken
+        Public Property TokenIndex() As Integer
+            Get
+                Return m_TokenIndex
+            End Get
+            Set
+                m_TokenIndex = Value
+            End Set
+        End Property
+        Private m_TokenIndex As Integer
+
+        Public Property TokenPeek() As Token
+            Get
+                Return m_TokenPeek
+            End Get
+            Set
+                m_TokenPeek = Value
+            End Set
+        End Property
+        Private m_TokenPeek As Token
+
+        Public Sub New(index As Integer, value As Token)
+            TokenIndex = index
+            TokenPeek = value
+        End Sub
+    End Class
+
+	''' <summary>
+	''' a Token object class
+	''' </summary>
+	''' <remarks>
+	''' A Token object holds the token and token value.
+	''' </remarks>
+    Public Class Token
+        Public Property TokenName() As TokenParser.Tokens
+            Get
+                Return m_TokenName
+            End Get
+            Set
+                m_TokenName = Value
+            End Set
+        End Property
+        Private m_TokenName As TokenParser.Tokens
+
+        Public Property TokenValue() As String
+            Get
+                Return m_TokenValue
+            End Get
+            Set
+                m_TokenValue = Value
+            End Set
+        End Property
+        Private m_TokenValue As String
+
+        Public Sub New(name As TokenParser.Tokens, value As String)
+            TokenName = name
+            TokenValue = value
+        End Sub
+    End Class
+End Namespace
+

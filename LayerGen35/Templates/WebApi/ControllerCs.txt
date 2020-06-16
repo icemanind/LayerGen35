@@ -1,0 +1,500 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Web.Http;
+using System.Web.Http.Cors;
+
+namespace {DataNamespaceName}.Controllers
+{
+    [RoutePrefix("api/v1/{SafeTableName}s")]
+    [EnableCors(Infrastructure.Settings.CorsOrigins, headers: "*", methods: "*")]
+    public class {SafeTableName}sController : ApiController
+    {
+        [Route("{id}", Name = "{SafeTableName}sGetByKey")]
+        [HttpGet]
+        public async System.Threading.Tasks.Task<HttpResponseMessage> GetRow({PkDataType} id)
+        {
+            var data = new {BusinessNamespaceName}.{SafeTableName}();
+            await data.LoadRowAsync(id);
+
+            var retval = new Models.{SafeTableName}Model();
+{GetRowFields}
+
+            return CreateResponse(HttpStatusCode.OK, retval);
+        }
+
+        [Route("{id}")]
+        [HttpPatch]
+        public async System.Threading.Tasks.Task<HttpResponseMessage> PatchRow({PkDataType} id, List<Models.WebApiPatch> model)
+        {
+            if (id <= 0)
+            {
+                return CreateResponse(HttpStatusCode.BadRequest, new Models.WebApiErrorModel { Status = "400", Message = "Invalid ID!" });
+            }
+
+            if (model.Count <= 0)
+            {
+                return CreateResponse(HttpStatusCode.OK, null);
+            }
+
+            var data = new {BusinessNamespaceName}.{SafeTableName}();
+            await data.LoadRowAsync(id);
+
+            foreach (Models.WebApiPatch patch in model)
+            {
+                if (patch.Op.ToLower() != "replace")
+                {
+                    return CreateResponse(HttpStatusCode.BadRequest, new Models.WebApiErrorModel { Status = "400", Message = "Only 'replace' operations are valid for PATCH" });
+                }
+
+                try
+                {
+                    string path = patch.Path.Trim(new[] {'/', ' ', '\\'});
+
+                    if (!IsFieldValid(path))
+                    {
+                        return CreateResponse(HttpStatusCode.BadRequest,
+                            new Models.WebApiErrorModel {Status = "400", Message = "Invalid Field: '" + path + "'"});
+                    }
+{PatchFields}
+                    
+                }
+                catch ({BusinessNamespaceName}.RowNotFoundException)
+                {
+                    return CreateResponse(HttpStatusCode.BadRequest,
+                        new Models.WebApiErrorModel { Status = "400", Message = "Invalid ID: " + id });
+                }
+                catch (Exception ex)
+                {
+                    return CreateResponse(HttpStatusCode.InternalServerError,
+                        new Models.WebApiErrorModel { Status = "500", Message = "An error occurred: " + ex.Message });
+                }
+            }
+
+			await data.SaveAsync();
+            return CreateResponse(HttpStatusCode.OK, new Models.WebApiErrorModel {Status = "200", Message = ""});
+        }
+
+        [Route("{id}")]
+        [HttpDelete]
+        public async System.Threading.Tasks.Task<HttpResponseMessage> DeleteRow({PkDataType} id)
+        {
+{DeleteIdCheck}
+            bool actualDelete = {ActualDeleteTrueFalse};
+
+			if (!actualDelete)
+			{
+				try {
+					var data = new {BusinessNamespaceName}.{SafeTableName}();
+					await data.LoadRowAsync(id);
+					{DeleteIdField}
+					await data.SaveAsync();
+				}
+				catch ({BusinessNamespaceName}.RowNotFoundException)
+				{
+					return CreateResponse(HttpStatusCode.NotFound,
+						new Models.WebApiErrorModel { Status = "404", Message = "Row not found" });
+				}
+				catch (Exception ex)
+				{
+					return CreateResponse(HttpStatusCode.InternalServerError, new Models.WebApiErrorModel { Status = "500", Message = "An error occured: " + ex.Message });
+				}
+				return CreateResponse(HttpStatusCode.NoContent, new Models.WebApiErrorModel {Status = "204", Message = ""});
+			}
+            try
+            {
+                var data = new {BusinessNamespaceName}.{SafeTableName}();
+                await data.LoadRowAsync(id);
+                await data.DeleteAsync();
+            }
+            catch ({BusinessNamespaceName}.RowNotFoundException)
+            {
+                return CreateResponse(HttpStatusCode.NotFound,
+                    new Models.WebApiErrorModel { Status = "404", Message = "Row not found" });
+            }
+            catch (Exception ex)
+            {
+                return CreateResponse(HttpStatusCode.InternalServerError, new Models.WebApiErrorModel { Status = "500", Message = "An error occured: " + ex.Message });
+            }
+            return CreateResponse(HttpStatusCode.NoContent, new Models.WebApiErrorModel {Status = "204", Message = ""});
+        }
+
+        [Route("{id}")]
+        [HttpPut]
+        public async System.Threading.Tasks.Task<HttpResponseMessage> UpdateRow({PkDataType} id, [FromBody]Models.{SafeTableName}CreateModel model)
+        {
+            if (Request.Content.Headers.ContentType.MediaType.ToLower() != "application/json")
+            {
+                return CreateResponse(HttpStatusCode.UnsupportedMediaType, new Models.WebApiErrorModel { Status = "415", Message = "Content type must be application/json" });
+            }
+            if (model == null)
+            {
+                return CreateResponse(HttpStatusCode.BadRequest, new Models.WebApiErrorModel { Status = "400", Message = "Invalid model!" });
+            }
+{PutParamsCheck}
+
+{PutIdCheck}
+
+            try
+            {
+                var data = new {BusinessNamespaceName}.{SafeTableName}();
+                await data.LoadRowAsync(id);
+
+{PutRowFields1}
+                await data.SaveAsync();
+
+                var retval = new Models.{SafeTableName}Model();
+{PutRowFields2}
+                return CreateResponse(HttpStatusCode.OK, retval, new Dictionary<string, string>
+                {
+                    {
+                        "Location", Url.Link("{SafeTableName}sGetByKey", new { id = id })
+                    }
+                });
+            }
+            catch ({BusinessNamespaceName}.RowNotFoundException)
+            {
+                return CreateResponse(HttpStatusCode.NotFound,
+                    new Models.WebApiErrorModel {Status = "404", Message = "Row not found"});
+            }
+            catch (Exception ex)
+            {
+                return CreateResponse(HttpStatusCode.InternalServerError, new Models.WebApiErrorModel { Status = "500", Message = "An error occured: " + ex.Message });
+            }
+        }
+
+        [Route("")]
+        [HttpPost]
+        public async System.Threading.Tasks.Task<HttpResponseMessage> CreateRow([FromBody]Models.{SafeTableName}CreateModel model)
+        {
+            if (Request.Content.Headers.ContentType.MediaType.ToLower() != "application/json")
+            {
+                return CreateResponse(HttpStatusCode.UnsupportedMediaType, new Models.WebApiErrorModel {Status = "415", Message = "Content type must be application/json"});
+            }
+            if (model == null)
+            {
+                return CreateResponse(HttpStatusCode.BadRequest, new Models.WebApiErrorModel {Status = "400", Message = "Invalid model!"});
+            }
+{PostParamsCheck}
+            
+            try
+            {
+                var data = new {BusinessNamespaceName}.{SafeTableName}();
+{PostRowFields1}
+                await data.SaveAsync();
+
+                var retval = new Models.{SafeTableName}Model();
+{PostRowFields2}
+                return CreateResponse(HttpStatusCode.Created, retval, new Dictionary<string, string>
+                {
+                    {
+                        "Location", Url.Link("{SafeTableName}sGetByKey", new { id = retval.{PkName} })
+                    }
+                });
+            }
+            catch(Exception ex)
+            {
+                return CreateResponse(HttpStatusCode.InternalServerError, new Models.WebApiErrorModel { Status = "500", Message = ex.Message });
+            }
+        }
+
+        [Route("", Name = "{SafeTableName}sGet")]
+        [HttpGet]
+        public async System.Threading.Tasks.Task<HttpResponseMessage> Get(string sort = "{PkName}", string filter = "{}", string q = "", string fields="", int page = 1, int pageSize = 0)
+        {
+            var data = new {BusinessNamespaceName}.{SafeTableName}s();
+            var model = new List<Models.{SafeTableName}Model>();
+            string orderBy = BuildOrderByString(sort);
+            string query = BuildQueryString(q);
+            string filterString = BuildFilterString(filter);
+            string fieldsString = BuildFieldsString(fields);
+            string sql = string.Format("WITH CteResults AS ( SELECT {0}, ROW_NUMBER() OVER ( ", fieldsString);
+
+            if (page <= 0)
+            {
+                page = 1;
+            }
+
+            if (fieldsString.StartsWith("ERROR:"))
+            {
+                return CreateResponse(HttpStatusCode.BadRequest, fieldsString.Remove(0, 7));
+            }
+
+            if (orderBy.StartsWith("ERROR:"))
+            {
+                return CreateResponse(HttpStatusCode.BadRequest, orderBy.Remove(0, 7));
+            }
+
+            if (filterString.StartsWith("ERROR:"))
+            {
+                return CreateResponse(HttpStatusCode.BadRequest, filterString.Remove(0, 7));
+            }
+
+            if (query.StartsWith("ERROR:"))
+            {
+                return CreateResponse(HttpStatusCode.BadRequest, query.Remove(0, 7));
+            }
+            sql = sql + orderBy + ") As Row_Num FROM " + {BusinessNamespaceName}.{SafeTableName}.LgTableNameDelimited;
+            sql = sql + " WHERE 1=1 " + query + filterString + ") SELECT * FROM CTEResults";
+
+            if (pageSize > 0)
+            {
+                sql = sql + " WHERE Row_Num BETWEEN " + (page * pageSize - pageSize + 1) + " AND " + ((page + 1) * pageSize - pageSize);
+            }
+            
+            await data.GetBySqlStatementAsync(sql);
+
+            foreach ({BusinessNamespaceName}.{SafeTableName} d in data)
+            {
+                Models.{SafeTableName}Model m = new Models.{SafeTableName}Model();
+
+{GetFields1}
+                model.Add(m);
+            }
+
+            string count = string.Format("SELECT COUNT(*) AS TotalCount FROM {0} WHERE 1=1 {1} {2}", {BusinessNamespaceName}.{SafeTableName}.LgTableNameDelimited, filterString, query);
+            int totalCount = (await {BusinessNamespaceName}.LoadData.FromSqlStatementAsync<CountClass>(count))[0].TotalCount;
+            var pageBuilder = new Infrastructure.PageLinkBuilder(Url, "{SafeTableName}sGet", null, page, pageSize, totalCount, filter, q, sort);
+
+            string link = "";
+
+            if (pageBuilder.FirstPage != null)
+            {
+                link = link + string.Format("<{0}>; rel=\"first\", ", pageBuilder.FirstPage);
+            }
+
+            if (pageBuilder.PreviousPage != null)
+            {
+                link = link + string.Format("<{0}>; rel=\"prev\", ", pageBuilder.PreviousPage);
+            }
+
+            if (pageBuilder.NextPage != null)
+            {
+                link = link + string.Format("<{0}>; rel=\"next\", ", pageBuilder.NextPage);
+            }
+
+            if (pageBuilder.LastPage != null)
+            {
+                link = link + string.Format("<{0}>; rel=\"last\", ", pageBuilder.LastPage);
+            }
+
+            link = link.Trim(new[] {' ', ','});
+
+            if (pageSize > 0)
+            {
+                return CreateResponse(HttpStatusCode.OK, model, new Dictionary<string, string>
+                {
+                    {"X-Total-Count", totalCount.ToString()},
+                    {"Link", link}
+                });
+            }
+
+            return CreateResponse(HttpStatusCode.OK, model, new Dictionary<string, string>
+            {
+                {"X-Total-Count", totalCount.ToString()}
+            });
+        }
+
+        private bool IsFieldValid(string fieldName)
+        {
+            if (string.IsNullOrWhiteSpace(fieldName))
+            {
+                return false;
+            }
+            switch (fieldName.ToLower())
+            {
+{ValidFields}
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private HttpResponseMessage CreateResponse(HttpStatusCode statusCode, object model, Dictionary<string, string> headers = null)
+        {
+            HttpResponseMessage response = Request.CreateResponse(statusCode);
+            response.Content = new StringContent(
+                Newtonsoft.Json.JsonConvert.SerializeObject(model,
+                    new Newtonsoft.Json.JsonSerializerSettings
+                    {
+                        ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver(),
+                        Formatting = Newtonsoft.Json.Formatting.Indented
+                    }), Encoding.UTF8, "application/json");
+
+            if (headers != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in headers)
+                {
+                    response.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
+
+            return response;
+        }
+
+        private string BuildFieldsString(string fieldsString)
+        {
+            string retval = "";
+            if (string.IsNullOrWhiteSpace(fieldsString))
+            {
+                return "*";
+            }
+            string[] fields = fieldsString.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string field in fields)
+            {
+                if (IsFieldValid(field))
+                {
+                    retval = retval + "[" + field + "],";
+                }
+                else
+                {
+                    return "ERROR: Invalid Field: " + field;
+                }
+            }
+
+            retval = retval.Trim(',');
+
+            return retval;
+        }
+
+        private string BuildFilterString(string filter)
+        {
+            string retval = " AND (";
+
+            if (filter == "{}")
+            {
+                return "";
+            }
+
+            var parser = new Infrastructure.TokenParser();
+            parser.InputString = filter;
+
+            SkipWhiteSpace(parser);
+            var token = parser.GetToken();
+            if (token.TokenName != Infrastructure.TokenParser.Tokens.OpeningBrace)
+            {
+                return "ERROR: Expected '{'";
+            }
+            SkipWhiteSpace(parser);
+            token = parser.GetToken();
+
+            while (token != null && token.TokenName != Infrastructure.TokenParser.Tokens.ClosingBrace)
+            {
+                switch (token.TokenName)
+                {
+                    case Infrastructure.TokenParser.Tokens.NotEqual:
+                        retval = retval + " <> ";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.Equal:
+                        retval = retval + " = ";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.GreaterThan:
+                        retval = retval + " > ";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.LessThan:
+                        retval = retval + " < ";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.GreaterThanOrEqual:
+                        retval = retval + " >= ";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.LessThanOrEqual:
+                        retval = retval + " < =";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.And:
+                        retval = retval + " AND ";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.Or:
+                        retval = retval + " OR ";
+                        break;
+                    case Infrastructure.TokenParser.Tokens.Undefined:
+                        return "ERROR: Unknown '" + token.TokenValue + "'";
+                    case Infrastructure.TokenParser.Tokens.FieldName:
+                        if (!IsFieldValid(token.TokenValue.Trim(new[] {'[', ']', ' '})))
+                        {
+                            return "ERROR: Unknown Field: '" + token.TokenValue + "'";
+                        }
+                        retval = retval + token.TokenValue;
+                        break;
+                    default:
+                        retval = retval + token.TokenValue;
+                        break;
+                }
+                SkipWhiteSpace(parser);
+                token = parser.GetToken();
+            }
+
+            if (token == null || token.TokenName != Infrastructure.TokenParser.Tokens.ClosingBrace)
+            {
+                return "ERROR: Expected '}'";
+            }
+
+            return retval + ")";
+        }
+
+        private void SkipWhiteSpace(Infrastructure.TokenParser parser)
+        {
+            Infrastructure.PeekToken token = parser.Peek();
+
+            while (token != null && token.TokenPeek.TokenName == Infrastructure.TokenParser.Tokens.WhiteSpace)
+            {
+                parser.GetToken();
+                token = parser.Peek();
+            }
+        }
+
+        private string BuildQueryString(string query)
+        {
+            string retval = "";
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return "";
+            }
+
+            string escapedQuery = query.Replace("'", "''").Replace("%", "[%]");
+            //retval = retval + string.Format(" AND ([{0}] LIKE '%{1}%' OR [{2}] LIKE '%{1}%')", "StateAbbreviation", query.Replace("'", "''").Replace("%", "[%]"), "StateNameLong");
+			//retval = retval + " AND ([StateAbbreviation] LIKE '%" + escapedQuery + "%' OR [StateNameLong] LIKE '%" + escapedQuery + "%')";
+			retval = retval + " AND ({QueryString})";
+            return retval;
+        }
+
+        private string BuildOrderByString(string sort)
+        {
+            if (string.IsNullOrWhiteSpace(sort))
+            {
+                return "ERROR: No Sort Field Specified";
+            }
+
+            var orderBy = new StringBuilder(" ORDER BY ");
+            string[] sortFields = sort.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string field in sortFields)
+            {
+                if (!IsFieldValid(field.Trim()))
+                {
+                    return "ERROR: Invalid Field: " + field.Trim().TrimStart(new[] { '+', '-' });
+                }
+                orderBy.Append("[");
+                if (field.Trim().StartsWith("-"))
+                {
+                    orderBy.Append(field.Trim().Remove(0, 1) + "] DESC");
+                }
+                else
+                {
+                    orderBy.Append(field.Trim().StartsWith("+") ? field.Trim().Remove(0, 1) + "] ASC" : field.Trim() + "] ASC");
+                }
+                orderBy.Append(",");
+            }
+
+            return orderBy.ToString().TrimEnd(',');
+        }
+
+        public class CountClass
+        {
+            public int TotalCount { get; set; }
+        }
+	}
+}

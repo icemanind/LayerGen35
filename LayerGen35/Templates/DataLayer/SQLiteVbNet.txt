@@ -1,0 +1,1293 @@
+﻿{$Comment1}
+
+Option Strict On
+Option Explicit On
+
+Imports System.Collections.Generic
+Imports System.Data
+Imports System.Data.SQLite
+Imports System.IO
+Imports System.Runtime.Serialization.Formatters.Binary
+Imports System.Data.SqlTypes
+
+Namespace {26}
+    <Serializable> _
+    Partial Public MustInherit Class {1}
+
+{2}
+{22}
+        {$Comment}' isDirty flag determines whether data has been changed.{/$Comment}
+        Private _layerGenIsDirty As Boolean
+        Protected _connectionString As String
+        {$Comment}' layerGenIsUpdate flag determines whether we need to do an update or an insert when saving.{/$Comment}
+        Protected _layerGenIsUpdate As Boolean
+        {$Comment}' isReadOnly determines if the row is in a read only state. This happens when partial{/$Comment}
+        {$Comment}' fields are loaded.{/$Comment}
+        Private _isReadOnly As Boolean
+        {/*}{$Comment}' concurrencyArray holds a serialized version of a database row to make concurrency work.{/$Comment}
+        Private _concurrencyArray As Byte()
+        Private ReadOnly _concurrency As {27}.{1}.ConcurrencyOptions{*/}
+
+        Protected Const LayerGenTableName As String = "{3}"
+        Protected Const LayerGenTableNameDelimited As String = "[{3}]"
+        Protected Const LayerGenAllFieldNamesDelimited As String = "{44}"
+        Protected Const LayerGenUpdatableFieldNamesDelimited As String = "{45}"
+        {/*}Private Const LayerGenFieldNames As String = "{4}"
+        Private Const LayerGenValueNames As String = "{5}"
+        Protected Const LayerGenPrimaryKey As String = "{6}"{*/}
+
+        {$Comment}' nullDictionary is a dictionary for keeping track of which fields are null values.{/$Comment}
+        Private ReadOnly _nullDictionary As Dictionary(Of {27}.{1}.Fields, Boolean)
+        {$Comment}' internalNameDictionary is a dictionary for holding the names of the fields, as they are in SQL Server.{/$Comment}
+        Private ReadOnly _internalNameDictionary As Dictionary(Of {27}.{1}.Fields, String)
+{18}
+        
+{7}
+
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class.
+        ''' </summary>
+        Protected Sub New()
+            {/*}{$Comment}' By default, set concurrency to Ignore.{/$Comment}
+            _concurrency = {27}.{1}.ConcurrencyOptions.Ignore{*/}
+            {$Comment}' Since no row was loaded, this will be an insert and not an update.{/$Comment}
+            _layerGenIsUpdate = False
+            {$Comment}' Since no data was modified yet, set the dirty flag to false.{/$Comment}
+            _layerGenIsDirty = False
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = Universal.GetConnectionString()
+{9}
+{10}
+
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        End Sub
+
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database</param>
+        Protected Sub New(connString As {27}.LayerGenConnectionString)
+            {/*}{$Comment}' By default, set concurrency to Ignore.{/$Comment}
+            _concurrency = {27}.{1}.ConcurrencyOptions.Ignore{*/}
+            {$Comment}' Since no row was loaded, this will be an insert and not an update.{/$Comment}
+            _layerGenIsUpdate = False
+            {$Comment}' Since no data was modified yet, set the dirty flag to false.{/$Comment}
+            _layerGenIsDirty = False
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = connString.ConnectionString
+{9}
+{10}
+
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        End Sub
+
+        
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class, loading a
+        ''' row from the given DataRow.
+        ''' </summary>
+        ''' <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        Protected Sub New(dr As DataRow)
+            {/*}{$Comment}' By default, set concurrency to Ignore.{/$Comment}
+            _concurrency = {27}.{1}.ConcurrencyOptions.Ignore{*/}
+            {$Comment}' Since a row was loaded, this will be an update and not an insert.{/$Comment}
+            _layerGenIsUpdate = True
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = Universal.GetConnectionString()
+{9}
+{10}
+            Fill(dr)
+            _layerGenIsDirty = False
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        End Sub
+
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class, loading a
+        ''' row from the given DataRow.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database</param>
+        ''' <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        Protected Sub New(connString As {27}.LayerGenConnectionString, dr As DataRow)
+            {/*}{$Comment}' By default, set concurrency to Ignore.{/$Comment}
+            _concurrency = {27}.{1}.ConcurrencyOptions.Ignore{*/}
+            {$Comment}' Since a row was loaded, this will be an update and not an insert.{/$Comment}
+            _layerGenIsUpdate = True
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = connString.ConnectionString
+{9}
+{10}
+            Fill(dr)
+            _layerGenIsDirty = False
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        End Sub
+
+        {/*}''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class, explicitly enabling
+        ''' or disabling the concurrency option.
+        ''' </summary>
+        ''' <param name="concurrency">A <see cref="{27}.{1}.ConcurrencyOptions"/> value indication the level of concurrency.</param>
+        Protected Sub New(concurrency As {27}.{1}.ConcurrencyOptions)
+            {$Comment}' Set concurrency.{/$Comment}
+            _concurrency = concurrency
+            {$Comment}' Since no row was loaded, this will be an insert and not an update.{/$Comment}
+            _layerGenIsUpdate = False
+            {$Comment}' Since no data was modified yet, set the dirty flag to false.{/$Comment}
+            _layerGenIsDirty = False
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = Universal.GetConnectionString()
+{9}
+{10}{*/}
+
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        {/*}End Sub{*/}
+
+        {/*}''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class, explicitly enabling
+        ''' or disabling the concurrency option.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database</param>
+        ''' <param name="concurrency">A <see cref="{27}.{1}.ConcurrencyOptions"/> value indication the level of concurrency.</param>
+        Protected Sub New(connString As {27}.LayerGenConnectionString, concurrency As {27}.{1}.ConcurrencyOptions)
+            {$Comment}' Set concurrency.{/$Comment}
+            _concurrency = concurrency
+            {$Comment}' Since no row was loaded, this will be an insert and not an update.{/$Comment}
+            _layerGenIsUpdate = False
+            {$Comment}' Since no data was modified yet, set the dirty flag to false.{/$Comment}
+            _layerGenIsDirty = False
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = connString.ConnectionString
+{9}
+{10}{*/}
+
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        {/*}End Sub{*/}
+
+{/*}
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class, loading a
+        ''' row from the given DataRow and explicitly enabling or disabling the
+        ''' concurrency option.
+        ''' </summary>
+        ''' <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        ''' <param name="concurrency">A <see cref="{27}.{1}.ConcurrencyOptions"/> value indicating the level of concurrency.</param>
+        Protected Sub New(dr As DataRow, concurrency As {27}.{1}.ConcurrencyOptions)
+			{$Comment}' Set concurrency.{/$Comment}
+            _concurrency = concurrency
+            {$Comment}' Since a row was loaded, this will be an update and not an insert.{/$Comment}
+            _layerGenIsUpdate = True
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = Universal.GetConnectionString()
+{9}
+{10}
+            Fill(dr)
+            _layerGenIsDirty = False{*/}
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        {/*}End Sub{*/}
+
+{/*}
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="{1}"/> class, loading a
+        ''' row from the given DataRow and explicitly enabling or disabling the
+        ''' concurrency option.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database</param>
+        ''' <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        ''' <param name="concurrency">A <see cref="{27}.{1}.ConcurrencyOptions"/> value indicating the level of concurrency.</param>
+        Protected Sub New(connString As {27}.LayerGenConnectionString, dr As DataRow, concurrency As {27}.{1}.ConcurrencyOptions)
+			{$Comment}' Set concurrency.{/$Comment}
+            _concurrency = concurrency
+            {$Comment}' Since a row was loaded, this will be an update and not an insert.{/$Comment}
+            _layerGenIsUpdate = True
+            {$Comment}' Since all fields were loaded, this is not read only.{/$Comment}
+            _isReadOnly = False
+            {$Comment}' Set the connection string.{/$Comment}
+            _connectionString = connString.ConnectionString
+{9}
+{10}
+            Fill(dr)
+            _layerGenIsDirty = False{*/}
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        {/*}End Sub{*/}
+{21}
+        ''' <summary>
+        ''' Reads a DataRow and populates the properties from the DataRow.
+        ''' </summary>
+        ''' <param name="dr">The DataRow that contains the data to be loaded into the properties.</param>
+		Protected Sub Fill(dr As DataRow)
+{11}
+            {/*}If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                _concurrencyArray = GetSerializedObject(Me)
+            End If{*/}
+        End Sub
+
+        ''' <summary>
+        ''' Determines if the given field exists in the SqlDataReader.
+        ''' </summary>
+        ''' <param name="fieldName">The name of the field to search for.</param>
+        ''' <param name="reader">The DbDataReader to search in.</param>
+        ''' <returns>Returns true if the field exists in the SQLiteDataReader, otherwise, returns false.</returns>
+        Protected Function HasField(fieldName As String, reader As System.Data.Common.DbDataReader) As Boolean
+            For i As Integer = 0 To reader.FieldCount - 1
+                If reader.GetName(i) = fieldName Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' Determines if the given field exists in the SqlDataReader.
+        ''' </summary>
+        ''' <param name="fieldName">The name of the field to search for.</param>
+        ''' <param name="reader">The SQLiteDataReader to search in.</param>
+        ''' <returns>Returns true if the field exists in the SQLiteDataReader, otherwise, returns false.</returns>
+        Protected Function HasField(fieldName As String, reader As SQLiteDataReader) As Boolean
+            For i As Integer = 0 To reader.FieldCount - 1
+                If reader.GetName(i) = fieldName Then
+                    Return True
+                End If
+            Next
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' Determines if the given field exists in the DataRow.
+        ''' </summary>
+        ''' <param name="fieldName">The name of the field to search for.</param>
+        ''' <param name="row">The DataRow to search in.</param>
+        ''' <returns>Returns true if the field exists in the DataRow, otherwise, returns false.</returns>
+        Protected Function HasField(fieldName As String, row As DataRow) As Boolean
+            Return row.Table.Columns.Contains(fieldName)
+        End Function
+
+        {/*}''' <summary>
+        ''' Retrieves the specified fields from the row with the matching
+        ''' primary key from the database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        ''' <param name="myFields">The fields to pull from the database.</param>
+		Protected Sub [Get](id As {19}, myFields As List(Of {27}.{1}.Fields))
+            Dim strFields As String = "[" & LayerGenPrimaryKey & "],"
+
+            If myFields Is Nothing OrElse myFields.Count = 0 Then
+                strFields = "*"
+            Else
+                For Each field As {27}.{1}.Fields In myFields
+                    strFields = strFields + "[" & _internalNameDictionary(field) & "],"
+                Next
+                strFields = strFields.TrimEnd(","c)
+            End If
+
+{20}
+            
+            Using connection As New SQLiteConnection(_connectionString)
+                Using command As New SQLiteCommand()
+                    connection.Open()
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+                    command.Connection = connection
+{28}
+                    Using reader As SQLiteDataReader = command.ExecuteReader()
+                        If Not reader.HasRows Then
+                            Throw New {27}.RowNotFoundException(LayerGenTableName & ": Could not find row with id of " & id)
+                        End If
+
+                        While reader.Read()
+{12}
+                        End While
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            End Using
+        End Sub
+
+        ''' <summary>
+        ''' Retrieves the specified fields from the row with the matching
+        ''' primary key from the database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        ''' <param name="fields">The fields to pull from the database.</param>
+        Public Sub LoadRow(ByVal id As {19}, ByVal fields As List(Of {27}.{1}.Fields))
+            [Get](id, fields)
+            _layerGenIsUpdate = True
+			_isReadOnly = True
+            _oldPrimaryKeyValue = {8}
+        End Sub
+
+        ''' <summary>
+        ''' Retrieves the row with the matching primary key from the
+        ''' database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        Public Sub LoadRow(ByVal id As {19})
+            [Get](id)
+            _layerGenIsUpdate = True
+			_isReadOnly = False
+            _oldPrimaryKeyValue = {8}
+        End Sub
+
+		{async}
+        ''' <summary>
+        ''' Retrieves the specified fields from the row with the matching
+        ''' primary key from the database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        ''' <param name="fields">The fields to pull from the database.</param>
+        Public Async Function LoadRowAsync(ByVal id As {19}, ByVal fields As List(Of {27}.{1}.Fields)) As System.Threading.Tasks.Task
+            Await GetAsync(id, fields)
+            _layerGenIsUpdate = True
+			_isReadOnly = True
+            _oldPrimaryKeyValue = {8}
+        End Function
+
+        ''' <summary>
+        ''' Retrieves the specified fields from the row with the matching
+        ''' primary key from the database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        ''' <param name="fields">The fields to pull from the database.</param>
+        ''' <param name="cancellationToken">The cancellation instruction.</param>
+        Public Async Function LoadRowAsync(ByVal id As {19}, ByVal fields As List(Of {27}.{1}.Fields), cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task
+            Await GetAsync(id, fields, cancellationToken)
+            _layerGenIsUpdate = True
+			_isReadOnly = True
+            _oldPrimaryKeyValue = {8}
+        End Function
+
+		 ''' <summary>
+        ''' Retrieves the specified fields from the row with the matching
+        ''' primary key from the database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        ''' <param name="cancellationToken">The cancellation instruction.</param>
+        Public Async Function LoadRowAsync(ByVal id As {19}, cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task
+            Await GetAsync(id, Nothing, cancellationToken)
+            _layerGenIsUpdate = True
+			_isReadOnly = False
+            _oldPrimaryKeyValue = {8}
+        End Function
+
+
+        ''' <summary>
+        ''' Retrieves the row with the matching primary key from the
+        ''' database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        Public Async Function LoadRowAsync(ByVal id As {19}) As System.Threading.Tasks.Task
+            Await GetAsync(id)
+            _layerGenIsUpdate = True
+			_isReadOnly = False
+            _oldPrimaryKeyValue = {8}
+        End Function
+
+        ''' <summary>
+        ''' Retrieves the specified fields from the row with the matching
+        ''' primary key from the database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        ''' <param name="myFields">The fields to pull from the database.</param>
+		Protected Async Function GetAsync(id As {19}, myFields As List(Of {27}.{1}.Fields)) As System.Threading.Tasks.Task
+            Dim strFields As String = "[" & LayerGenPrimaryKey & "],"
+
+            If myFields Is Nothing OrElse myFields.Count = 0 Then
+                strFields = "*"
+            Else
+                For Each field As {27}.{1}.Fields In myFields
+                    strFields = strFields + "[" & _internalNameDictionary(field) & "],"
+                Next
+                strFields = strFields.TrimEnd(","c)
+            End If
+
+{20}
+            
+            Using connection As New SQLiteConnection(_connectionString)
+                Using command As New SQLiteCommand()
+                    Await connection.OpenAsync()
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+                    command.Connection = connection
+{28}
+                    Using reader As System.Data.Common.DbDataReader = Await command.ExecuteReaderAsync()
+                        If Not reader.HasRows Then
+                            Throw New {27}.RowNotFoundException(LayerGenTableName & ": Could not find row with id of " & id)
+                        End If
+
+                        While Await reader.ReadAsync()
+{12}
+                        End While
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            End Using
+        End Function
+
+        ''' <summary>
+        ''' Retrieves the specified fields from the row with the matching
+        ''' primary key from the database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        ''' <param name="myFields">The fields to pull from the database.</param>
+		''' <param name="cancellationToken">The cancellation token.</param>
+		Protected Async Function GetAsync(id As {19}, myFields As List(Of {27}.{1}.Fields), cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task
+            Dim strFields As String = "[" & LayerGenPrimaryKey & "],"
+
+            If myFields Is Nothing OrElse myFields.Count = 0 Then
+                strFields = "*"
+            Else
+                For Each field As {27}.{1}.Fields In myFields
+                    strFields = strFields + "[" & _internalNameDictionary(field) & "],"
+                Next
+                strFields = strFields.TrimEnd(","c)
+            End If
+
+{20}
+            
+            Using connection As New SQLiteConnection(_connectionString)
+                Using command As New SQLiteCommand()
+                    Await connection.OpenAsync(cancellationToken)
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+                    command.Connection = connection
+{28}
+                    Using reader As System.Data.Common.DbDataReader = Await command.ExecuteReaderAsync(cancellationToken)
+                        If Not reader.HasRows Then
+                            Throw New {27}.RowNotFoundException(LayerGenTableName & ": Could not find row with id of " & id)
+                        End If
+
+                        While Await reader.ReadAsync(cancellationToken)
+{12}
+                        End While
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            End Using
+        End Function
+
+		''' <summary>
+        ''' Retrieves the row with the matching primary key from the
+        ''' database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+		''' <param name="cancellationToken">The cancellation token.</param>
+        Private Async Function GetAsync(id As {19}, cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task
+            Await GetAsync(id, Nothing, cancellationToken)
+        End Function
+
+        ''' <summary>
+        ''' Retrieves the row with the matching primary key from the
+        ''' database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        Private Async Function GetAsync(id As {19}) As System.Threading.Tasks.Task
+            Await GetAsync(id, DirectCast(Nothing, List(Of {27}.{1}.Fields)))
+        End Function
+		{/async}
+        ''' <summary>
+        ''' Retrieves the row with the matching primary key from the
+        ''' database and stores them in the properties.
+        ''' </summary>
+        ''' <param name="id">The primary key of the row to pull.</param>
+        Private Sub [Get](id As {19})
+            [Get](id, Nothing)
+        End Sub{*/}
+
+        ''' <summary>
+        ''' Unsets the value of the given field to null.
+        ''' </summary>
+        ''' <param name="field">The field to unset as null.</param>
+        Private Sub UnsetNull(field As {27}.{1}.Fields)
+            _nullDictionary(field) = False
+        End Sub
+
+        ''' <summary>
+        ''' Sets the value of the given field to null.
+        ''' </summary>
+        ''' <param name="field">The field to set as null.</param>
+        Public Sub SetNull(field As {27}.{1}.Fields)
+            _layerGenIsDirty = True
+            _nullDictionary(field) = True
+        End Sub
+
+        ''' <summary>
+        ''' Determines if the given field is null or if it contains a value.
+        ''' </summary>
+        ''' <param name="field">The field to test for a null value.</param>
+        ''' <returns>True, if the field is null, otherwise, false.</returns>
+        Public Function IsNull(field As {27}.{1}.Fields) As Boolean
+            Return _nullDictionary(field)
+        End Function
+
+        ''' <summary>
+        ''' Resets all properties to their default (null) value.
+        ''' </summary>
+        Private Sub ResetToDefault()
+{13}
+            {/*}_oldPrimaryKeyValue = {8}{*/}
+        End Sub
+{/*}
+        ''' <summary>
+        ''' Deletes this row from the database.
+        ''' </summary>
+        Public Sub Delete()
+            Dim cmdString As String = "DELETE FROM [" & LayerGenTableName & "] WHERE [" & LayerGenPrimaryKey & "]={88}
+            Using connection As New SQLiteConnection(_connectionString)
+                connection.Open()
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = cmdString
+
+                    command.ExecuteNonQuery()
+                End Using
+            End Using            
+            ResetToDefault()
+           _layerGenIsDirty = False
+           _layerGenIsUpdate = False
+        End Sub
+		{async}
+        ''' <summary>
+        ''' Deletes this row from the database.
+        ''' </summary>
+        Public Async Function DeleteAsync() As System.Threading.Tasks.Task
+            Dim cmdString As String = "DELETE FROM [" & LayerGenTableName & "] WHERE [" & LayerGenPrimaryKey & "]={88}
+            Using connection As New SQLiteConnection(_connectionString)
+                Await connection.OpenAsync()
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = cmdString
+
+                    Await command.ExecuteNonQueryAsync()
+                End Using
+            End Using            
+            ResetToDefault()
+           _layerGenIsDirty = False
+           _layerGenIsUpdate = False
+        End Function
+
+        ''' <summary>
+        ''' Deletes this row from the database.
+        ''' </summary>
+        ''' <param name="cancellationToken">The cancellation token.</param>
+        Public Async Function DeleteAsync(cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task
+            Dim cmdString As String = "DELETE FROM [" & LayerGenTableName & "] WHERE [" & LayerGenPrimaryKey & "]={88}
+            Using connection As New SQLiteConnection(_connectionString)
+                Await connection.OpenAsync(cancellationToken)
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = cmdString
+
+                    Await command.ExecuteNonQueryAsync(cancellationToken)
+                End Using
+            End Using            
+            ResetToDefault()
+           _layerGenIsDirty = False
+           _layerGenIsUpdate = False
+        End Function
+		{/async}
+        ''' <summary>
+        ''' Saves this row to the database. It will either do an INSERT or an UPDATE
+        ''' depending on whether this is a new row or an existing row.
+        ''' </summary>
+        ''' <exception cref="{27}.ReadOnlyException">Thrown if only partial fields have loaded. If this is a force save, then this exception will not be thrown.</exception>
+        ''' <exception cref="{27}.OutOfSyncException">Thrown if concurrency is set to strict and the row being saved is out of sync with the row in the database.</exception>
+        Public Sub Save()
+            Save(False)
+        End Sub
+		{async}
+        ''' <summary>
+        ''' Saves this row to the database. It will either do an INSERT or an UPDATE
+        ''' depending on whether this is a new row or an existing row.
+        ''' </summary>
+        ''' <exception cref="{27}.ReadOnlyException">Thrown if only partial fields have loaded. If this is a force save, then this exception will not be thrown.</exception>
+        ''' <exception cref="{27}.OutOfSyncException">Thrown if concurrency is set to strict and the row being saved is out of sync with the row in the database.</exception>
+        Public Async Function SaveAsync() As System.Threading.Tasks.Task
+            Await SaveAsync(False)
+        End Function
+
+        ''' <summary>
+        ''' Saves this row to the database. It will either do an INSERT or an UPDATE
+        ''' depending on whether this is a new row or an existing row.
+        ''' </summary>
+        ''' <param name="cancellationToken">The cancellation token.</param>
+        ''' <exception cref="{27}.ReadOnlyException">Thrown if only partial fields have loaded. If this is a force save, then this exception will not be thrown.</exception>
+        ''' <exception cref="{27}.OutOfSyncException">Thrown if concurrency is set to strict and the row being saved is out of sync with the row in the database.</exception>
+        Public Async Function SaveAsync(cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task
+            Await SaveAsync(False, cancellationToken)
+        End Function
+		{/async}
+
+        ''' <summary>
+        ''' Saves this row to the database. It will either do an INSERT or an UPDATE
+        ''' depending on whether this is a new row or an existing row. You can specify
+        ''' whether or not to force save this row. If only partial fields have been
+        ''' loaded, force saving will force the row to save. Keep in mind though that
+        ''' the fields that are not loaded will be overwritten with a null value.
+        ''' </summary>
+        ''' <param name="forceSave">True, if you want to force save the row.</param>
+        ''' <exception cref="{27}.ReadOnlyException">Thrown if only partial fields have loaded. If this is a force save, then this exception will not be thrown.</exception>
+        ''' <exception cref="{27}.OutOfSyncException">Thrown if concurrency is set to strict and the row being saved is out of sync with the row in the database.</exception>
+        Public Sub Save(forceSave As Boolean)
+            If Not _layerGenIsDirty Then
+                Return
+            End If
+
+            If _isReadOnly AndAlso forceSave = False Then
+                Throw New {27}.ReadOnlyException(LayerGenTableName & " is in a read-only state because only partial fields have been loaded!")
+            End If
+
+            If Not _layerGenIsUpdate Then
+                Const cmdString As String = "INSERT INTO [" & LayerGenTableName & "] (" & LayerGenFieldNames & ") VALUES (" & LayerGenValueNames & "); SELECT last_insert_rowid();"
+
+                Using connection As New SQLiteConnection(_connectionString)
+                    Using command As New SQLiteCommand()
+                        command.Connection = connection
+                        command.CommandType = CommandType.Text
+                        command.CommandText = cmdString
+{14}
+                        connection.Open()
+                        Dim obj As Object = command.ExecuteScalar()
+                        _oldPrimaryKeyValue = {8}
+{15}
+                        _layerGenIsUpdate = True
+                        _layerGenIsDirty = False
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            Else
+{16}
+                Using connection As New SQLiteConnection(_connectionString)
+                    Using command As New SQLiteCommand()
+                        command.Connection = connection
+                        command.CommandType = CommandType.Text
+                        command.CommandText = cmdString
+{14}
+{17}
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            If Not IsDataEqual() Then
+                                Throw New {27}.OutOfSyncException(LayerGenTableName & ": Row is out of sync with database! Changes not written to database!")
+                            End If
+                        End If
+                        connection.Open()
+                        command.ExecuteNonQuery()
+                        _oldPrimaryKeyValue = {8}
+                        _layerGenIsUpdate = True
+                        _layerGenIsDirty = False
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            End If
+        End Sub
+		{async}
+        ''' <summary>
+        ''' Saves this row to the database. It will either do an INSERT or an UPDATE
+        ''' depending on whether this is a new row or an existing row. You can specify
+        ''' whether or not to force save this row. If only partial fields have been
+        ''' loaded, force saving will force the row to save. Keep in mind though that
+        ''' the fields that are not loaded will be overwritten with a null value.
+        ''' </summary>
+        ''' <param name="forceSave">True, if you want to force save the row.</param>
+        ''' <exception cref="{27}.ReadOnlyException">Thrown if only partial fields have loaded. If this is a force save, then this exception will not be thrown.</exception>
+        ''' <exception cref="{27}.OutOfSyncException">Thrown if concurrency is set to strict and the row being saved is out of sync with the row in the database.</exception>
+        Public Async Function SaveAsync(forceSave As Boolean) As System.Threading.Tasks.Task
+            If Not _layerGenIsDirty Then
+                Return
+            End If
+
+            If _isReadOnly AndAlso forceSave = False Then
+                Throw New {27}.ReadOnlyException(LayerGenTableName & " is in a read-only state because only partial fields have been loaded!")
+            End If
+
+            If Not _layerGenIsUpdate Then
+                Const cmdString As String = "INSERT INTO [" & LayerGenTableName & "] (" & LayerGenFieldNames & ") VALUES (" & LayerGenValueNames & "); SELECT last_insert_rowid();"
+
+                Using connection As New SQLiteConnection(_connectionString)
+                    Using command As New SQLiteCommand()
+                        command.Connection = connection
+                        command.CommandType = CommandType.Text
+                        command.CommandText = cmdString
+{14}
+                        Await connection.OpenAsync()
+                        Dim obj As Object = Await command.ExecuteScalarAsync()
+                        _oldPrimaryKeyValue = {8}
+{15}
+                        _layerGenIsUpdate = True
+                        _layerGenIsDirty = False
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            Else
+{16}
+                Using connection As New SQLiteConnection(_connectionString)
+                    Using command As New SQLiteCommand()
+                        command.Connection = connection
+                        command.CommandType = CommandType.Text
+                        command.CommandText = cmdString
+{14}
+{17}
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            If Not (Await IsDataEqualAsync()) Then
+                                Throw New {27}.OutOfSyncException(LayerGenTableName & ": Row is out of sync with database! Changes not written to database!")
+                            End If
+                        End If
+                        Await connection.OpenAsync()
+                        Await command.ExecuteNonQueryAsync()
+                        _oldPrimaryKeyValue = {8}
+                        _layerGenIsUpdate = True
+                        _layerGenIsDirty = False
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            End If
+        End Function
+
+        ''' <summary>
+        ''' Saves this row to the database. It will either do an INSERT or an UPDATE
+        ''' depending on whether this is a new row or an existing row. You can specify
+        ''' whether or not to force save this row. If only partial fields have been
+        ''' loaded, force saving will force the row to save. Keep in mind though that
+        ''' the fields that are not loaded will be overwritten with a null value.
+        ''' </summary>
+        ''' <param name="forceSave">True, if you want to force save the row.</param>
+        ''' <param name="cancellationToken">The cancellation token.</param>
+        ''' <exception cref="{27}.ReadOnlyException">Thrown if only partial fields have loaded. If this is a force save, then this exception will not be thrown.</exception>
+        ''' <exception cref="{27}.OutOfSyncException">Thrown if concurrency is set to strict and the row being saved is out of sync with the row in the database.</exception>
+        Public Async Function SaveAsync(forceSave As Boolean, cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task
+            If Not _layerGenIsDirty Then
+                Return
+            End If
+
+            If _isReadOnly AndAlso forceSave = False Then
+                Throw New {27}.ReadOnlyException(LayerGenTableName & " is in a read-only state because only partial fields have been loaded!")
+            End If
+
+            If Not _layerGenIsUpdate Then
+                Const cmdString As String = "INSERT INTO [" & LayerGenTableName & "] (" & LayerGenFieldNames & ") VALUES (" & LayerGenValueNames & "); SELECT last_insert_rowid();"
+
+                Using connection As New SQLiteConnection(_connectionString)
+                    Using command As New SQLiteCommand()
+                        command.Connection = connection
+                        command.CommandType = CommandType.Text
+                        command.CommandText = cmdString
+{14}
+                        Await connection.OpenAsync(cancellationToken)
+                        Dim obj As Object = Await command.ExecuteScalarAsync(cancellationToken)
+                        _oldPrimaryKeyValue = {8}
+{15}
+                        _layerGenIsUpdate = True
+                        _layerGenIsDirty = False
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            Else
+{16}
+                Using connection As New SQLiteConnection(_connectionString)
+                    Using command As New SQLiteCommand()
+                        command.Connection = connection
+                        command.CommandType = CommandType.Text
+                        command.CommandText = cmdString
+{14}
+{17}
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            If Not (Await IsDataEqualAsync(cancellationToken)) Then
+                                Throw New {27}.OutOfSyncException(LayerGenTableName & ": Row is out of sync with database! Changes not written to database!")
+                            End If
+                        End If
+                        Await connection.OpenAsync(cancellationToken)
+                        Await command.ExecuteNonQueryAsync(cancellationToken)
+                        _oldPrimaryKeyValue = {8}
+                        _layerGenIsUpdate = True
+                        _layerGenIsDirty = False
+                        If _concurrency <> {27}.{1}.ConcurrencyOptions.Ignore Then
+                            _concurrencyArray = GetSerializedObject(Me)
+                        End If
+                    End Using
+                End Using
+            End If
+        End Function
+		{/async}
+
+{*/}
+{23}
+        ''' <summary>
+        ''' Retrieves all rows and all fields from the {1} table.
+        ''' </summary>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Function GetAll() As DataTable
+            Return GetBySqlStatement("SELECT * FROM [" & LayerGenTableName & "]")
+        End Function
+
+		{async}
+        ''' <summary>
+        ''' Retrieves all rows and all fields from the {1} table.
+        ''' </summary>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetAllAsync() As System.Threading.Tasks.Task(Of DataTable)
+            Return Await GetBySqlStatementAsync("SELECT * FROM [" & LayerGenTableName & "]")
+        End Function
+
+        ''' <summary>
+        ''' Retrieves all rows and all fields from the {1} table.
+        ''' </summary>
+        ''' <param name="cancellationToken">The cancellation token.</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetAllAsync(cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task(Of DataTable)
+            Return Await GetBySqlStatementAsync(cancellationToken, "SELECT * FROM [" & LayerGenTableName & "]")
+        End Function
+
+		{/async}
+
+        ''' <summary>
+        ''' Retrieves all rows and all fields from the {1} table.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Function GetAll(connString As {27}.LayerGenConnectionString) As DataTable
+            Return GetBySqlStatement(connString, "SELECT * FROM [" & LayerGenTableName & "]")
+        End Function
+		{async}
+        ''' <summary>
+        ''' Retrieves all rows and all fields from the {1} table.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetAllAsync(connString As {27}.LayerGenConnectionString) As System.Threading.Tasks.Task(Of DataTable)
+            Return Await GetBySqlStatementAsync(connString, "SELECT * FROM [" & LayerGenTableName & "]")
+        End Function
+
+        ''' <summary>
+        ''' Retrieves all rows and all fields from the {1} table.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database</param>
+        ''' <param name="cancellationToken">The cancellation token.</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetAllAsync(connString As {27}.LayerGenConnectionString, cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task(Of DataTable)
+            Return Await GetBySqlStatementAsync(connString, cancellationToken, "SELECT * FROM [" & LayerGenTableName & "]")
+        End Function
+
+		{/async}
+
+        ''' <summary>
+        ''' Retrieves rows from the {1} table, based on the given SQL statement.
+        ''' </summary>
+        ''' <param name="sql">The SQL statement to execute.</param>
+        ''' <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Function GetBySqlStatement(sql As String, ParamArray sqlParams As Object()) As DataTable
+            Dim paramNdx As Integer = 0
+            Dim valNdx As Integer = 1
+            Dim paramValDictionary As New Dictionary(Of String, String)()
+
+            For Each param As Object In sqlParams
+                If TypeOf param Is String Then
+                    sql = sql.Replace("'{" & paramNdx & "}'", "@val" & valNdx)
+                    sql = sql.Replace("{" & paramNdx & "}", "@val" & valNdx)
+                    paramValDictionary.Add("@val" & valNdx, DirectCast(param, String))
+                    valNdx += 1
+                Else
+                    sql = sql.Replace("{" & paramNdx & "}", param.ToString())
+                End If
+                paramNdx += 1
+            Next
+
+            Using connection As New SQLiteConnection(Universal.GetConnectionString())
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+
+                    For Each kvp As KeyValuePair(Of String, String) In paramValDictionary
+                        command.Parameters.AddWithValue(kvp.Key, kvp.Value)
+                    Next
+
+                    connection.Open()
+                    Using adapter As New SQLiteDataAdapter()
+                        Using ds As New DataSet()
+                            adapter.SelectCommand = command
+                            adapter.Fill(ds)
+
+                            If ds.Tables.Count > 0 Then
+                                Return ds.Tables(0)
+                            End If
+                        End Using
+                    End Using
+                End Using
+            End Using
+            Return Nothing
+        End Function
+		{async}
+        ''' <summary>
+        ''' Retrieves rows from the {1} table, based on the given SQL statement.
+        ''' </summary>
+        ''' <param name="sql">The SQL statement to execute.</param>
+        ''' <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetBySqlStatementAsync(sql As String, ParamArray sqlParams As Object()) As System.Threading.Tasks.Task(Of DataTable)
+            Dim paramNdx As Integer = 0
+            Dim valNdx As Integer = 1
+            Dim paramValDictionary As New Dictionary(Of String, String)()
+
+            For Each param As Object In sqlParams
+                If TypeOf param Is String Then
+                    sql = sql.Replace("'{" & paramNdx & "}'", "@val" & valNdx)
+                    sql = sql.Replace("{" & paramNdx & "}", "@val" & valNdx)
+                    paramValDictionary.Add("@val" & valNdx, DirectCast(param, String))
+                    valNdx += 1
+                Else
+                    sql = sql.Replace("{" & paramNdx & "}", param.ToString())
+                End If
+                paramNdx += 1
+            Next
+
+            Using connection As New SQLiteConnection(Universal.GetConnectionString())
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+
+                    For Each kvp As KeyValuePair(Of String, String) In paramValDictionary
+                        command.Parameters.AddWithValue(kvp.Key, kvp.Value)
+                    Next
+
+                    Await connection.OpenAsync()
+                    Using adapter As New SQLiteDataAdapter()
+                        Using ds As New DataSet()
+                            adapter.SelectCommand = command
+                            Await System.Threading.Tasks.Task.Run(Function() adapter.Fill(ds))
+
+                            If ds.Tables.Count > 0 Then
+                                Return ds.Tables(0)
+                            End If
+                        End Using
+                    End Using
+                End Using
+            End Using
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' Retrieves rows from the {1} table, based on the given SQL statement.
+        ''' </summary>
+		''' <param name="cancellationToken">The cancellation token.</param>
+        ''' <param name="sql">The SQL statement to execute.</param>
+        ''' <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetBySqlStatementAsync(cancellationToken As System.Threading.CancellationToken, sql As String, ParamArray sqlParams As Object()) As System.Threading.Tasks.Task(Of DataTable)
+            Dim paramNdx As Integer = 0
+            Dim valNdx As Integer = 1
+            Dim paramValDictionary As New Dictionary(Of String, String)()
+
+            For Each param As Object In sqlParams
+                If TypeOf param Is String Then
+                    sql = sql.Replace("'{" & paramNdx & "}'", "@val" & valNdx)
+                    sql = sql.Replace("{" & paramNdx & "}", "@val" & valNdx)
+                    paramValDictionary.Add("@val" & valNdx, DirectCast(param, String))
+                    valNdx += 1
+                Else
+                    sql = sql.Replace("{" & paramNdx & "}", param.ToString())
+                End If
+                paramNdx += 1
+            Next
+
+            Using connection As New SQLiteConnection(Universal.GetConnectionString())
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+
+                    For Each kvp As KeyValuePair(Of String, String) In paramValDictionary
+                        command.Parameters.AddWithValue(kvp.Key, kvp.Value)
+                    Next
+
+                    Await connection.OpenAsync(cancellationToken)
+                    Using adapter As New SQLiteDataAdapter()
+                        Using ds As New DataSet()
+                            adapter.SelectCommand = command
+                            Await System.Threading.Tasks.Task.Run(Function() adapter.Fill(ds), cancellationToken)
+
+                            If ds.Tables.Count > 0 Then
+                                Return ds.Tables(0)
+                            End If
+                        End Using
+                    End Using
+                End Using
+            End Using
+            Return Nothing
+        End Function
+
+		{/async}
+
+        ''' <summary>
+        ''' Retrieves rows from the {1} table, based on the given SQL statement.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database.</param>
+        ''' <param name="sql">The SQL statement to execute.</param>
+        ''' <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Function GetBySqlStatement(connString As {27}.LayerGenConnectionString, sql As String, ParamArray sqlParams As Object()) As DataTable
+            Dim paramNdx As Integer = 0
+            Dim valNdx As Integer = 1
+            Dim paramValDictionary As New Dictionary(Of String, String)()
+
+            For Each param As Object In sqlParams
+                If TypeOf param Is String Then
+                    sql = sql.Replace("'{" & paramNdx & "}'", "@val" & valNdx)
+                    sql = sql.Replace("{" & paramNdx & "}", "@val" & valNdx)
+                    paramValDictionary.Add("@val" & valNdx, DirectCast(param, String))
+                    valNdx += 1
+                Else
+                    sql = sql.Replace("{" & paramNdx & "}", param.ToString())
+                End If
+                paramNdx += 1
+            Next
+
+            Using connection As New SQLiteConnection(connString.ConnectionString)
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+
+                    For Each kvp As KeyValuePair(Of String, String) In paramValDictionary
+                        command.Parameters.AddWithValue(kvp.Key, kvp.Value)
+                    Next
+
+                    connection.Open()
+                    Using adapter As New SQLiteDataAdapter()
+                        Using ds As New DataSet()
+                            adapter.SelectCommand = command
+                            adapter.Fill(ds)
+
+                            If ds.Tables.Count > 0 Then
+                                Return ds.Tables(0)
+                            End If
+                        End Using
+                    End Using
+                End Using
+            End Using
+            Return Nothing
+        End Function
+
+{async}
+        ''' <summary>
+        ''' Retrieves rows from the {1} table, based on the given SQL statement.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database.</param>
+        ''' <param name="sql">The SQL statement to execute.</param>
+        ''' <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetBySqlStatementAsync(connString As {27}.LayerGenConnectionString, sql As String, ParamArray sqlParams As Object()) As System.Threading.Tasks.Task(Of DataTable)
+            Dim paramNdx As Integer = 0
+            Dim valNdx As Integer = 1
+            Dim paramValDictionary As New Dictionary(Of String, String)()
+
+            For Each param As Object In sqlParams
+                If TypeOf param Is String Then
+                    sql = sql.Replace("'{" & paramNdx & "}'", "@val" & valNdx)
+                    sql = sql.Replace("{" & paramNdx & "}", "@val" & valNdx)
+                    paramValDictionary.Add("@val" & valNdx, DirectCast(param, String))
+                    valNdx += 1
+                Else
+                    sql = sql.Replace("{" & paramNdx & "}", param.ToString())
+                End If
+                paramNdx += 1
+            Next
+
+            Using connection As New SQLiteConnection(connString.ConnectionString)
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+
+                    For Each kvp As KeyValuePair(Of String, String) In paramValDictionary
+                        command.Parameters.AddWithValue(kvp.Key, kvp.Value)
+                    Next
+
+                    Await connection.OpenAsync()
+                    Using adapter As New SQLiteDataAdapter()
+                        Using ds As New DataSet()
+                            adapter.SelectCommand = command
+                            Await System.Threading.Tasks.Task.Run(Function() adapter.Fill(ds))
+
+                            If ds.Tables.Count > 0 Then
+                                Return ds.Tables(0)
+                            End If
+                        End Using
+                    End Using
+                End Using
+            End Using
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' Retrieves rows from the {1} table, based on the given SQL statement.
+        ''' </summary>
+        ''' <param name="connString">Sets the connection string to use to connect to the database.</param>
+		''' <param name="cancellationToken">The cancellation token.</param>
+        ''' <param name="sql">The SQL statement to execute.</param>
+        ''' <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        ''' <returns>A <see cref="System.Data.DataTable" /> with all the data.</returns>
+        Friend Shared Async Function GetBySqlStatementAsync(connString As {27}.LayerGenConnectionString, cancellationToken As System.Threading.CancellationToken, sql As String, ParamArray sqlParams As Object()) As System.Threading.Tasks.Task(Of DataTable)
+            Dim paramNdx As Integer = 0
+            Dim valNdx As Integer = 1
+            Dim paramValDictionary As New Dictionary(Of String, String)()
+
+            For Each param As Object In sqlParams
+                If TypeOf param Is String Then
+                    sql = sql.Replace("'{" & paramNdx & "}'", "@val" & valNdx)
+                    sql = sql.Replace("{" & paramNdx & "}", "@val" & valNdx)
+                    paramValDictionary.Add("@val" & valNdx, DirectCast(param, String))
+                    valNdx += 1
+                Else
+                    sql = sql.Replace("{" & paramNdx & "}", param.ToString())
+                End If
+                paramNdx += 1
+            Next
+
+            Using connection As New SQLiteConnection(connString.ConnectionString)
+                Using command As New SQLiteCommand()
+                    command.Connection = connection
+                    command.CommandType = CommandType.Text
+                    command.CommandText = sql
+
+                    For Each kvp As KeyValuePair(Of String, String) In paramValDictionary
+                        command.Parameters.AddWithValue(kvp.Key, kvp.Value)
+                    Next
+
+                    Await connection.OpenAsync(cancellationToken)
+                    Using adapter As New SQLiteDataAdapter()
+                        Using ds As New DataSet()
+                            adapter.SelectCommand = command
+                            Await System.Threading.Tasks.Task.Run(Function() adapter.Fill(ds), cancellationToken)
+
+                            If ds.Tables.Count > 0 Then
+                                Return ds.Tables(0)
+                            End If
+                        End Using
+                    End Using
+                End Using
+            End Using
+            Return Nothing
+        End Function
+
+{/async}
+
+{/*}        Private Function GetSerializedObject(cls As {1}) As Byte()
+{24}
+        End Function
+
+        ''' <summary>
+        ''' Determines of the current concurrency array is equal to what's in the database.
+        ''' </summary>
+        ''' <returns>True, if the data in memory is equal to whats in the database, otherwise false.</returns>
+        Protected Function IsDataEqual() As Boolean
+            Dim obj As New {27}.{1}()
+            obj.LoadRow({25})
+            Dim myArray As Byte() = _concurrencyArray
+            Dim clsArray As Byte() = GetSerializedObject(obj)
+
+            If myArray.Length <> clsArray.Length Then
+                Return False
+            End If
+
+            For i As Integer = 0 To myArray.Length - 1
+                If myArray(i) <> clsArray(i) Then
+                    Return False
+                End If
+            Next
+            Return True
+        End Function
+		{async}
+        ''' <summary>
+        ''' Determines of the current concurrency array is equal to what's in the database.
+        ''' </summary>
+        ''' <returns>True, if the data in memory is equal to whats in the database, otherwise false.</returns>
+        Protected Async Function IsDataEqualAsync() As System.Threading.Tasks.Task(Of Boolean)
+            Dim obj As New {27}.{1}()
+			Await obj.LoadRowAsync({25})
+            Dim myArray As Byte() = _concurrencyArray
+            Dim clsArray As Byte() = GetSerializedObject(obj)
+
+            If myArray.Length <> clsArray.Length Then
+                Return False
+            End If
+
+            For i As Integer = 0 To myArray.Length - 1
+                If myArray(i) <> clsArray(i) Then
+                    Return False
+                End If
+            Next
+            Return True
+        End Function
+
+        ''' <summary>
+        ''' Determines of the current concurrency array is equal to what's in the database.
+        ''' </summary>
+        ''' <returns>True, if the data in memory is equal to whats in the database, otherwise false.</returns>
+        Protected Async Function IsDataEqualAsync(cancellationToken As System.Threading.CancellationToken) As System.Threading.Tasks.Task(Of Boolean)
+            Dim obj As New {27}.{1}()
+			Await obj.LoadRowAsync({25}, cancellationToken)
+            Dim myArray As Byte() = _concurrencyArray
+            Dim clsArray As Byte() = GetSerializedObject(obj)
+
+            If myArray.Length <> clsArray.Length Then
+                Return False
+            End If
+
+            For i As Integer = 0 To myArray.Length - 1
+                If myArray(i) <> clsArray(i) Then
+                    Return False
+                End If
+            Next
+            Return True
+        End Function
+		{/async}
+
+        Private Function ObjectToByteArray(obj As Object) As Byte()
+            If obj Is Nothing Then
+                Return New Byte() {}
+            End If
+
+            Dim bf As New BinaryFormatter()
+            Using memStream As New MemoryStream()
+                bf.Serialize(memStream, obj)
+                Return memStream.ToArray()
+            End Using
+        End Function{*/}
+{33}
+{34}
+{32}
+    End Class
+End Namespace

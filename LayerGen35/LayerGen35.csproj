@@ -1,0 +1,269 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{20B86E14-9236-40C7-9E7C-B0C83BA14A33}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>LayerGen35</RootNamespace>
+    <AssemblyName>LayerGen35</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Layergen3x.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>LayerGen.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="MySql.Data, Version=6.9.11.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <HintPath>..\packages\MySql.Data.6.9.11\lib\net40\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.SQLite, Version=1.0.108.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Data.SQLite.Core.1.0.108.0\lib\net40\System.Data.SQLite.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DatabasePlugins\Common.cs" />
+    <Compile Include="DatabasePlugins\IDatabasePlugin.cs" />
+    <Compile Include="DatabasePlugins\MsAccess.cs" />
+    <Compile Include="DatabasePlugins\MySql.cs" />
+    <Compile Include="DatabasePlugins\Oracle.cs" />
+    <Compile Include="DatabasePlugins\Sqlite.cs" />
+    <Compile Include="DatabasePlugins\SqlServer.cs" />
+    <Compile Include="DeleteProfileDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DeleteProfileDialog.Designer.cs">
+      <DependentUpon>DeleteProfileDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ExtensionMethods.cs" />
+    <Compile Include="LgObject.cs" />
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NativeMethods.cs" />
+    <Compile Include="ObjectExplorer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ObjectExplorer.Designer.cs">
+      <DependentUpon>ObjectExplorer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ObjectExplorerMsAccess.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ObjectExplorerMsAccess.Designer.cs">
+      <DependentUpon>ObjectExplorerMsAccess.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ObjectExplorerMySql.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ObjectExplorerMySql.Designer.cs">
+      <DependentUpon>ObjectExplorerMySql.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ObjectExplorerOracle.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ObjectExplorerOracle.Designer.cs">
+      <DependentUpon>ObjectExplorerOracle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ObjectExplorerSqlite.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ObjectExplorerSqlite.Designer.cs">
+      <DependentUpon>ObjectExplorerSqlite.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PleaseWaitForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PleaseWaitForm.Designer.cs">
+      <DependentUpon>PleaseWaitForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Profile.cs" />
+    <Compile Include="Profiles.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RegistryFunctions.cs" />
+    <Compile Include="SaveProfileDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SaveProfileDialog.Designer.cs">
+      <DependentUpon>SaveProfileDialog.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="DeleteProfileDialog.resx">
+      <DependentUpon>DeleteProfileDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ObjectExplorer.resx">
+      <DependentUpon>ObjectExplorer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ObjectExplorerMsAccess.resx">
+      <DependentUpon>ObjectExplorerMsAccess.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ObjectExplorerMySql.resx">
+      <DependentUpon>ObjectExplorerMySql.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ObjectExplorerOracle.resx">
+      <DependentUpon>ObjectExplorerOracle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ObjectExplorerSqlite.resx">
+      <DependentUpon>ObjectExplorerSqlite.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PleaseWaitForm.resx">
+      <DependentUpon>PleaseWaitForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <None Include="app.config" />
+    <None Include="LayerGen.snk" />
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\AprilTile.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Layergen3x.ico" />
+    <EmbeddedResource Include="Templates\WebApi\ControllerCore2Cs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\PageLinkBuilderCore2Cs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\WebApiPatchCs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\CreateModelCs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\ControllerCs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\PageLinkBuilderCs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\WebApiErrorModelCs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\ModelCs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\TokenParserCs.txt" />
+    <EmbeddedResource Include="Templates\WebApi\TokenParserVb.txt" />
+    <EmbeddedResource Include="Templates\Universal2MsAccessVb.txt" />
+    <EmbeddedResource Include="Templates\Universal1MsAccessVb.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\MsAccessVbNet.txt" />
+    <EmbeddedResource Include="Templates\BusinessLayer\MsAccessVbNet.txt" />
+    <EmbeddedResource Include="Templates\Universal2MsAccessCs.txt" />
+    <EmbeddedResource Include="Templates\Universal1MsAccessCs.txt" />
+    <EmbeddedResource Include="Templates\BusinessLayer\MsAccessCSharp.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\MsAccessCSharp.txt" />
+    <EmbeddedResource Include="Templates\Universal2OracleCs.txt" />
+    <EmbeddedResource Include="Templates\Universal1OracleCs.txt" />
+    <EmbeddedResource Include="SaveProfileDialog.resx">
+      <DependentUpon>SaveProfileDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Templates\Universal1SqliteVb.txt" />
+    <EmbeddedResource Include="Templates\Universal2SqliteVb.txt" />
+    <EmbeddedResource Include="Templates\Universal1MySqlVb.txt" />
+    <EmbeddedResource Include="Templates\Universal2MySqlVb.txt" />
+    <EmbeddedResource Include="Templates\Universal2SqlServerVb.txt" />
+    <EmbeddedResource Include="Templates\Universal1SqlServerVb.txt" />
+    <EmbeddedResource Include="Templates\Universal1MySqlCs.txt" />
+    <EmbeddedResource Include="Templates\Universal2MySqlCs.txt" />
+    <EmbeddedResource Include="Templates\Universal1SqliteCs.txt" />
+    <EmbeddedResource Include="Templates\Universal2SqliteCs.txt" />
+    <EmbeddedResource Include="Templates\Universal2SqlServerCs.txt" />
+    <EmbeddedResource Include="Templates\Universal1SqlServerCs.txt" />
+    <None Include="Resources\Help-icon1.png" />
+    <None Include="Resources\Help-icon.png" />
+    <EmbeddedResource Include="Templates\BusinessLayer\MySqlVbNet.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\MySqlVbNet.txt" />
+    <EmbeddedResource Include="Templates\BusinessLayer\MySqlCSharp.txt" />
+    <EmbeddedResource Include="Templates\BusinessLayer\SQLiteVbNet.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\SQLiteVbNet.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\MySqlCSharp.txt" />
+    <EmbeddedResource Include="Templates\BusinessLayer\SQLiteCSharp.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\SQLiteCSharp.txt" />
+    <EmbeddedResource Include="Templates\BusinessLayer\SqlServerVbNet.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\SqlServerVbNet.txt" />
+    <EmbeddedResource Include="Templates\BusinessLayer\SqlServerCSharp.txt" />
+    <EmbeddedResource Include="Templates\DataLayer\SqlServerCSharp.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\System.Data.SQLite.Core.1.0.108.0\build\net40\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.108.0\build\net40\System.Data.SQLite.Core.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.108.0\build\net40\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.108.0\build\net40\System.Data.SQLite.Core.targets'))" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

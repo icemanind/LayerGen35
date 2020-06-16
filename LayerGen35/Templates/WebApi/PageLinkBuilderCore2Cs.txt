@@ -1,0 +1,61 @@
+﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+
+namespace {DataNamespaceName}.Infrastructure
+{
+    public class PageLinkBuilder
+    {
+        public Uri FirstPage { get; private set; }
+        public Uri LastPage { get; private set; }
+        public Uri NextPage { get; private set; }
+        public Uri PreviousPage { get; private set; }
+
+        public PageLinkBuilder(IUrlHelper urlHelper, string routeName, object routeValues, int pageNo, int pageSize,
+            long totalRecordCount, string filter, string query, string sort)
+        {
+            var pageCount = totalRecordCount > 0
+                ? (int)Math.Ceiling(totalRecordCount / (double)pageSize)
+                : 0;
+
+            FirstPage = new Uri(urlHelper.Link(routeName, new RouteValueDictionary(routeValues)
+            {
+                {"page", 1},
+                {"pageSize", pageSize},
+                {"filter", filter },
+                {"q", query },
+                {"sort", sort }
+            }));
+            LastPage = new Uri(urlHelper.Link(routeName, new RouteValueDictionary(routeValues)
+            {
+                {"page", pageCount},
+                {"pageSize", pageSize},
+                {"filter", filter },
+                {"q", query },
+                {"sort", sort }
+            }));
+            if (pageNo > 1)
+            {
+                PreviousPage = new Uri(urlHelper.Link(routeName, new RouteValueDictionary(routeValues)
+                {
+                    {"page", pageNo - 1},
+                    {"pageSize", pageSize},
+                    {"filter", filter },
+                    {"q", query },
+                    {"sort", sort }
+                }));
+            }
+            if (pageNo < pageCount)
+            {
+                NextPage = new Uri(urlHelper.Link(routeName, new RouteValueDictionary(routeValues)
+                {
+                    {"page", pageNo + 1},
+                    {"pageSize", pageSize},
+                    {"filter", filter },
+                    {"q", query },
+                    {"sort", sort }
+                }));
+            }
+        }
+    }
+}

@@ -1,0 +1,316 @@
+﻿{$Comment1}
+using System;
+using System.Collections.Generic;
+using System.Data;
+
+namespace {27}
+{
+    [Serializable]
+    public partial class {0} : {26}.{0}
+    {
+        {/*}public enum ConcurrencyOptions
+        {
+            /// <summary>
+            /// Concurrency checking is disabled
+            /// </summary>
+            Ignore = 0,
+            /// <summary>
+            /// Concurrency checking is checked and an exception is thrown if the data changed
+            /// </summary>
+            Strict = 1
+		}{*/}
+
+        public enum Fields
+        {
+{3}
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class.
+        /// </summary>
+        public {0}() : base()
+        {
+            
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class.
+        /// </summary>
+        /// <param name="connectionString">Sets the connection string to use to connect to the database.</param>
+        public {0}(LayerGenConnectionString connectionString) : base(connectionString)
+        {
+            
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class, loading a
+        /// row from the given DataRow.
+        /// </summary>
+        /// <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        protected internal {0}(DataRow dr) : base(dr)
+        {
+
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class, loading a
+        /// row from the given DataRow.
+        /// </summary>
+        /// <param name="connectionString">Sets the connection string to use to connect to the database.</param>
+        /// <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        protected internal {0}(LayerGenConnectionString connectionString, DataRow dr) : base(connectionString, dr)
+        {
+
+        }
+
+        {/*}/// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class, explicitly enabling
+        /// or disabling the concurrency option.
+        /// </summary>
+        /// <param name="concurrency">A <see cref="{27}.{0}.ConcurrencyOptions"/> value indicating the level of concurrency.</param>
+        public {0}(ConcurrencyOptions concurrency) : base(concurrency)
+        {
+            
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class, explicitly enabling
+        /// or disabling the concurrency option.
+        /// </summary>
+        /// <param name="connectionString">Sets the connection string to use to connect to the database.</param>
+        /// <param name="concurrency">A <see cref="{27}.{0}.ConcurrencyOptions"/> value indicating the level of concurrency.</param>
+        public {0}(LayerGenConnectionString connectionString, ConcurrencyOptions concurrency) : base(connectionString, concurrency)
+        {
+            
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class, loading a
+        /// row from the given DataRow and explicitly enabling or disabling the
+        /// concurrency option.
+        /// </summary>
+        /// <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        /// <param name="concurrency">A <see cref="{27}.{0}.ConcurrencyOptions"/> value indicating the level of concurrency.</param>
+        protected internal {0}(DataRow dr, ConcurrencyOptions concurrency) : base(dr, concurrency)
+        {
+
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{0}"/> class, loading a
+        /// row from the given DataRow and explicitly enabling or disabling the
+        /// concurrency option.
+        /// </summary>
+        /// <param name="connectionString">Sets the connection string to use to connect to the database.</param>
+        /// <param name="dr">The DataRow that contains the data to be loaded into the instance.</param>
+        /// <param name="concurrency">A <see cref="{27}.{0}.ConcurrencyOptions"/> value indicating the level of concurrency.</param>
+        protected internal {0}(LayerGenConnectionString connectionString, DataRow dr, ConcurrencyOptions concurrency) : base(connectionString, dr, concurrency)
+        {
+
+        }{*/}
+
+        /// <summary>
+        /// A comma separated list of all the fields in the table
+        /// </summary>
+        public static string LgAllFieldNamesDelimited
+        {
+            get { return LayerGenAllFieldNamesDelimited; }
+        }
+
+        /// <summary>
+        /// A comma separated list of all fields in the table that can be updated
+		/// e.g. non-calculated fields and non-identity fields
+        /// </summary>
+        public static string LgUpdatableFieldNamesDelimited
+        {
+            get { return LayerGenUpdatableFieldNamesDelimited; }
+        }
+
+        /// <summary>
+        /// The name of the table
+        /// </summary>
+        public static string LgTableName
+        {
+            get { return LayerGenTableName; }
+        }
+
+        /// <summary>
+        /// The name of table, delimited with brackets
+        /// e.g. "[{99}]" instead of "{99}"
+        /// </summary>
+        public static string LgTableNameDelimited
+        {
+            get { return LayerGenTableNameDelimited; }
+        }
+
+        protected internal bool LayerGenIsUpdate()
+        {
+            return _layerGenIsUpdate;
+        }
+
+        protected internal string LayerGenConnectionString()
+        {
+            return _connectionString;
+        }
+
+{/*}
+        /// <summary>
+        /// The name of the primary key in the table
+        /// </summary>
+        public static string LgPrimaryKeyName
+        {
+            get { return LayerGenPrimaryKey; }
+        }{*/}
+
+{34}
+    }
+
+    /// <summary>
+    /// Represents a collection of <see cref="{0}"/> objects.
+    /// </summary>
+    [Serializable]
+    public class {35} : List<{0}>
+    {
+        private string _connectionString;
+        {/*}private readonly {0}.ConcurrencyOptions _concurrency;
+
+        public {35}({0}.ConcurrencyOptions concurrency)
+        {
+            _concurrency = concurrency;
+            _connectionString = {26}.Universal.GetConnectionString();
+		}
+
+        public {35}(LayerGenConnectionString connectionString, {0}.ConcurrencyOptions concurrency)
+        {
+            _concurrency = concurrency;
+            _connectionString = connectionString.ConnectionString;
+		}
+		{*/}
+        public {35}()
+        {
+            {/*}_concurrency = {0}.ConcurrencyOptions.Ignore;{*/}
+            _connectionString = {26}.Universal.GetConnectionString();
+		}
+
+        public {35}(LayerGenConnectionString connectionString)
+        {
+            {/*}_concurrency = {0}.ConcurrencyOptions.Ignore;{*/}
+            _connectionString = connectionString.ConnectionString;
+		}
+
+        protected void Load(DataRowCollection dataRows)
+        {
+            LayerGenConnectionString connectString = new LayerGenConnectionString();
+            connectString.ConnectionString = _connectionString;
+
+            Clear();
+            foreach (DataRow dr in dataRows)
+            {
+                
+                Add(new {0}(connectString, dr{/*}, _concurrency{*/}));
+            }
+        }
+
+{2}
+        /// <summary>
+        /// Retrieves rows from the {0} table, based on the given SQL statement.
+        /// </summary>
+        /// <param name="sql">The SQL statement to execute.</param>
+        /// <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        public void GetBySqlStatement(string sql, params object[] sqlParams)
+        {
+            LayerGenConnectionString connectString = new LayerGenConnectionString();
+            connectString.ConnectionString = _connectionString;
+
+            DataTable dt = {26}.{0}.GetBySqlStatement(connectString, sql, sqlParams);
+            if (dt != null)
+            {
+                Load(dt.Rows);
+            }
+        }
+		{async}
+        /// <summary>
+        /// Retrieves rows from the {0} table, based on the given SQL statement.
+        /// </summary>
+        /// <param name="sql">The SQL statement to execute.</param>
+        /// <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        public async System.Threading.Tasks.Task GetBySqlStatementAsync(string sql, params object[] sqlParams)
+        {
+            LayerGenConnectionString connectString = new LayerGenConnectionString();
+            connectString.ConnectionString = _connectionString;
+
+            DataTable dt = await {26}.{0}.GetBySqlStatementAsync(connectString, sql, sqlParams);
+            if (dt != null)
+            {
+                Load(dt.Rows);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves rows from the {0} table, based on the given SQL statement.
+        /// </summary>
+		/// <param name="cancellationToken">The cancellation Token</param>
+        /// <param name="sql">The SQL statement to execute.</param>
+        /// <param name="sqlParams">Optional <see cref="System.String.Format"/> like parameters</param>
+        public async System.Threading.Tasks.Task GetBySqlStatementAsync(System.Threading.CancellationToken cancellationToken, string sql, params object[] sqlParams)
+        {
+            LayerGenConnectionString connectString = new LayerGenConnectionString();
+            connectString.ConnectionString = _connectionString;
+
+            DataTable dt = await {26}.{0}.GetBySqlStatementAsync(connectString, cancellationToken, sql, sqlParams);
+            if (dt != null)
+            {
+                Load(dt.Rows);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves all the rows from the {0} table.
+        /// </summary>
+        public async System.Threading.Tasks.Task GetAllAsync()
+        {
+            LayerGenConnectionString connectString = new LayerGenConnectionString();
+            connectString.ConnectionString = _connectionString;
+
+            DataTable dt = await {26}.{0}.GetAllAsync(connectString);
+            if (dt != null)
+            {
+                Load(dt.Rows);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves all the rows from the {0} table.
+        /// </summary>
+		/// <param name="cancellationToken">The cancellation Token</param>
+        public async System.Threading.Tasks.Task GetAllAsync(System.Threading.CancellationToken cancellationToken)
+        {
+            LayerGenConnectionString connectString = new LayerGenConnectionString();
+            connectString.ConnectionString = _connectionString;
+
+            DataTable dt = await {26}.{0}.GetAllAsync(connectString, cancellationToken);
+            if (dt != null)
+            {
+                Load(dt.Rows);
+            }
+        }
+
+{/async}
+
+        /// <summary>
+        /// Retrieves all the rows from the {0} table.
+        /// </summary>
+        public void GetAll()
+        {
+            LayerGenConnectionString connectString = new LayerGenConnectionString();
+            connectString.ConnectionString = _connectionString;
+
+            DataTable dt = {26}.{0}.GetAll(connectString);
+            if (dt != null)
+            {
+                Load(dt.Rows);
+            }
+        }
+{33}
+    }
+}
